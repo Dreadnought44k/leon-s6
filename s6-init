@@ -1,0 +1,4 @@
+#!/bin/execlineb -S0
+
+/bin/importas -D /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin PATH PATH
+/bin/s6-stage1 $@

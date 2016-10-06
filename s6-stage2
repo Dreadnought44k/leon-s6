@@ -1,0 +1,62 @@
+#!/bin/execlineb -S0
+
+# Merge environments from our custom stage into current context
+s6-envdir -I /etc/s6/env-stage2
+
+foreground 
+{ 
+  ifelse { s6-test -f /etc/s6/env-stage2/KEYMAP } 
+	{ 
+		importas -u KEYMAP KEYMAP 
+ 		s6-echo "[s6-stage2] Setting your keymap" 
+		loadkeys -q -u "$KEYMAP" 
+	}
+	s6-echo "[s6-stage2] no keymap set,ignoring"
+}
+
+foreground
+{
+  ifelse { s6-test -f /etc/s6/env-stage2/HOSTNAME }
+	{	 
+		importas HOSTNAME HOSTNAME
+		s6-echo "[s6-stage2] setting your hostname"
+		s6-hostname $HOSTNAME
+	}
+	s6-echo "[s6-stage2] no hostname set,ignoring"
+}
+
+s6-echo "[s6-stage2] start networking"
+foreground { ip link set up dev lo }
+
+s6-echo "[s6-stage2] enabling swap"
+s6-swapon -a 
+
+s6-echo "[s6-stage2] enabling sysctl"
+sysctl -q --system 
+
+s6-echo "[s6-stage2] Initializing random seed."
+foreground 
+{
+  cp /var/lib/random-seed /dev/urandom >/dev/null 2>&1 || true
+  ( umask 077; bytes=$(cat /proc/sys/kernel/random/poolsize) || bytes=512; dd if=/dev/urandom of=/var/lib/random-seed count=1 bs=$bytes >/dev/null 2>&1 )
+}
+
+s6-echo "[s6-stage] enabling binfmt"
+foreground { /lib64/rc/sh/binfmt.sh }
+
+if
+{
+  if { s6-test -d /service }
+  if { s6-echo "[s6-stage2] starting long-lived services" }
+	{
+		pipeline { s6-ls -0 -- /service }
+		forstdin -0 -p -- i
+		importas -u i i
+		if { s6-test -d /service/${i} }
+		s6-hiercopy /service/${i} "/run"/s6/service/${i}
+		s6-echo "[s6-stage2] services: {i}"
+	}
+	if { s6-svscanctl -a "/run"/s6/services }
+}
+if { s6-echo "[s6-stage2] services done" }
+
