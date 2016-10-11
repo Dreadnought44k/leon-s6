@@ -1,0 +1,3 @@
+#!/bin/execlineb -P
+
+/sbin/agetty --autologin leon 38400 tty6 linux

@@ -1,0 +1,10 @@
+bundle-filesystem
+bundle-mount
+bundle-network
+bundle-disks
+bundle-getty
+bundle-init
+bundle-misc
+service-udev
+service-dhcpcd
+service-crond

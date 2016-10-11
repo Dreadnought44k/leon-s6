@@ -1,0 +1,4 @@
+if { udevadm trigger --action=add --type=subsystems }
+if { udevadm trigger --action=add --type=devices }
+if { udevadm settle }
+

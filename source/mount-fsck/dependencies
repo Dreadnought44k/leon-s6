@@ -1,0 +1,4 @@
+mount-devtmpfs
+mount-proc
+mount-tmp
+mount-sys

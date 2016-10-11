@@ -1,0 +1,7 @@
+mount-devtmpfs
+mount-fstab
+mount-proc
+mount-rw
+mount-swap
+mount-sys
+mount-tmp

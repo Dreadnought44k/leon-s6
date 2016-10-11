@@ -1,0 +1,1 @@
+if -t { fsck -A -T -a -t noopts=_netdev }
