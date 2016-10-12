@@ -1,0 +1,6 @@
+#!/bin/execlineb -P
+
+redirfd -w 2 /dev/null
+redirfd -w 1 /dev/console
+redirfd -rnb 0 fifo
+s6-log -bp -- t "/run"/uncaught-logs

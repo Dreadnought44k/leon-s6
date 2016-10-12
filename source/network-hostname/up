@@ -1,3 +1,0 @@
-s6-envdir -i /run/s6/misc
-importas -i hostname hostname
-s6-hostname ${hostname}

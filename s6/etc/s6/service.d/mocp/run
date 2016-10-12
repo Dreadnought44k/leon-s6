@@ -1,0 +1,3 @@
+#!/bin/execlineb -P
+sudo --user=leon
+mocp --server --foreground

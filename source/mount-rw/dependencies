@@ -1,5 +1,0 @@
-mount-proc
-mount-devtmpfs
-mount-sys
-mount-tmp
-mount-fsck

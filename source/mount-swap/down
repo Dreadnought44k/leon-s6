@@ -1,3 +1,0 @@
-s6-envdir -i /run/s6/disk-devices
-importas -i swap swap
-s6-swapoff /dev/${swap}

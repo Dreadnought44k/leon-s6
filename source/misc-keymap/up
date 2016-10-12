@@ -1,3 +1,0 @@
-s6-envdir -i /run/s6/misc
-importas -i keymap keymap
-loadkeys -q -u ${keymap}

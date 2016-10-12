@@ -1,0 +1,4 @@
+#!/bin/execlineb -P
+redirfd -w 1 /dev/null
+fdmove 2 1
+busybox crond -f

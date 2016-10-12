@@ -1,0 +1,3 @@
+#!/bin/execlineb -P
+
+s6-log -b n5 s22000 S1100000 /var/log/dhcpcd

@@ -1,2 +1,0 @@
-s6-mount -n -o remount,ro /dev/root /
-

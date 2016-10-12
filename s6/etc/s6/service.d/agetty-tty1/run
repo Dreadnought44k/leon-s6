@@ -1,0 +1,3 @@
+#!/bin/execlineb -P
+fdmove -c 2 1
+/sbin/agetty --noclear 38400 tty1 linux

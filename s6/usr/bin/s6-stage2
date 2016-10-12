@@ -1,0 +1,91 @@
+#!/bin/execlineb -S0
+
+foreground { s6-echo "[s6-stage2] Mounting pseudofs." }
+foreground { s6-mount -o nosuid,noexec,nodev        -t proc proc /proc }
+foreground { s6-mount -o nosuid,noexec,nodev        -t sysfs sys /sys }
+foreground { s6-ln -s sda3 /dev/root }
+
+foreground { s6-mkdir -p -m0755 /dev/pts /dev/shm }
+foreground { s6-mkdir -p -m1777 /dev/mqueue }
+foreground { s6-mkdir -p -m0755 /run/lock }
+
+foreground { s6-mount -o noexec,nosuid,nodev -n -t mqueue mqueue /dev/mqueue }
+foreground { s6-mount -o mode=0620,gid=5,nosuid,noexec -n -t devpts devpts /dev/pts }
+foreground { s6-mount -o mode=1777,nosuid,nodev -n -t tmpfs shm /dev/shm }
+
+foreground { s6-echo "[s6-stage2] doing fsck." }
+foreground { fsck -A -T -a -t noopts=_netdev }
+
+foreground { s6-echo "[s6-stage2] remount root as read-write." }
+foreground { s6-mount -o remount,rw /dev/root / }
+
+foreground { s6-echo "[s6-stage2] mounting local partitions." }
+foreground { mount -a -t "nosysfs,nonfs,nonfs4,nosmbfs,nocifs" }
+
+foreground { s6-echo "[s6-stage2] activating swap." }
+foreground { s6-swapon -a }
+
+s6-envdir -I /etc/s6/env-stage2
+foreground 
+{ 
+  ifelse { s6-test -n KEYMAP } 
+  { 
+    importas -u KEYMAP KEYMAP 
+    loadkeys -q -u "$KEYMAP" 
+  }
+  s6-echo "[s6-stage2] no keymap set,ignoring"
+}
+
+foreground
+{
+  ifelse { s6-test -n HOSTNAME }
+  {	 
+    importas HOSTNAME HOSTNAME
+    s6-hostname $HOSTNAME
+  }
+  s6-echo "[s6-stage2] no hostname set,ignoring"
+}
+
+foreground { sysctl -q --system }
+
+foreground { if -n { redirfd -w 1 /dev/null fdmove -c 2 1 cp /var/lib/random-seed /dev/urandom } /bin/true }
+foreground { if -n { ( umask 077 define bytes $(cat /proc/sys/kernel/random/poolsize) } define bytes 512; redirfd -w 1 /dev/null fdmove -c 2 1 dd if=/dev/urandom of=/var/lib/random-seed count=1 define bs $bytes ) }
+
+foreground { /lib64/rc/sh/binfmt.sh }
+
+if
+{
+  if { s6-test -d /etc/s6/service.d }
+  if { s6-echo "[s6-stage2] starting long-lived services" }
+  if
+  {
+    pipeline { s6-ls -0 -- /etc/s6/service.d }
+    forstdin -0 -p -- i
+    importas -u i i
+    if { s6-test -d /etc/s6/service.d/${i} }
+    s6-hiercopy /etc/s6/service.d/${i} "/run"/service/${i}
+  }
+  if { s6-svscanctl -a "/run"/service }
+  if
+  {
+    if { s6-test -n SERVICE_TIMEWAIT } 
+    if
+    {
+      importas -u SERVICE_TIMEWAIT SERVICE_TIMEWAIT
+      pipeline { s6-ls -0 -- /etc/s6/service.d }
+      forstdin -0 -p -- i
+      importas -u i i
+      s6-svwait -u /run/service/${i}
+    }
+  }
+  if { s6-echo "[s6-stage2] services done" }
+}
+
+foreground { s6-echo "[s6-stage2] activating network." }
+foreground { ip link set up dev lo }
+
+# foreground { sleep 1 }
+foreground { s6-echo "[s6-stage2] doing udev triggers." }
+foreground { udevadm trigger --action=add --type=subsystems }
+foreground { udevadm trigger --action=add --type=devices }
+foreground { udevadm settle }

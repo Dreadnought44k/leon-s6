@@ -1,3 +1,0 @@
-if { s6-umount /dev/shm } s6-rmrf /dev/shm
-if { s6-umount /dev/pts } s6-rmrf /dev/pts
-if { s6-umount /dev/mqueue } s6-rmrf /dev/mqueue

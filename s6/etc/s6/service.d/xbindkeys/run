@@ -1,0 +1,4 @@
+#!/bin/execlineb -P
+fdmove -c 2 1
+sudo --user=leon
+xbindkeys --nodaemon --display :0
