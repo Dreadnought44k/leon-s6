@@ -1,0 +1,47 @@
+#!/bin/execlineb -S0
+
+# This is the shutdown script, running as process 1.
+cd /
+
+# Merge environments from our custom stage into current context
+s6-envdir -I /etc/s6/env-stage3
+
+# Sync before killing processes
+foreground { s6-echo "[s6-stage3] syncing disks." }
+foreground { s6-sync }
+
+# Send a gentle kill signal to everything
+foreground { s6-echo "[s6-stage3] sending all processes the TERM signal." }
+foreground { s6-nuke -th } # foreground is process 1: it survives
+
+foreground
+{
+  ifelse { s6-test -n TERM_GRACETIME }
+  {
+    importas TERM_GRACETIME TERM_GRACETIME
+    foreground { s6-echo "[s6-stage3] wait ${TERM_GRACETIME} ms for graceful kill." }
+    foreground { s6-sleep -m -- ${TERM_GRACETIME} } # give the programs the user time to die gracefully
+  }
+  foreground { s6-echo "[s6-stage3] no wait time for graceful kill." }
+}
+
+# Send a lethal kill signal to everything
+foreground { s6-echo "[s6-stage3] sending all processes the KILL signal." }
+foreground { s6-nuke -k } # foreground is process 1: it survives again
+
+# Do filesystem operations
+foreground { s6-echo "[s6-stage3] turning off swap." }
+foreground { s6-swapoff -a }
+
+foreground { s6-echo "[s6-stage3] umounting local filesystems." }
+foreground { s6-umount -a }
+
+foreground { s6-echo "[s6-stage3] remount root as read-only." }
+foreground { s6-mount -n -o remount,ro /dev/root / }
+
+# Reap all zombies then sync, and we're done
+wait { }
+foreground { s6-sync }
+
+foreground { s6-echo "[s6-stage3] doing ${@}." }
+foreground { ifelse { s6-test "$@" = "reboot" } { /sbin/reboot -f } /sbin/poweroff -f }
